@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 // Import Zod and define a schema that matches the shape of your form object. This schema will validate the formData before saving it to a database. The amount field is specifically set to coerce (change) from a string to a number while also validating its type.
 const FormSchema = z.object({
@@ -118,5 +120,24 @@ export async function deleteInvoice(id: string) {
     return {
       message: 'Database Error: Failed to Create Invoice',
     };
+  }
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
   }
 }
